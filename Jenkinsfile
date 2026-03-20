@@ -6,6 +6,7 @@ pipeline {
         BACKEND_IMAGE = "backend-app"
         FRONTEND_CONTAINER = "frontend-container"
         BACKEND_CONTAINER = "backend-container"
+        NETWORK = "app-network"
     }
 
     stages {
@@ -16,7 +17,16 @@ pipeline {
             }
         }
 
-        // 🔹 FRONTEND BUILD
+        // 🔹 CREATE DOCKER NETWORK (IMPORTANT)
+        stage('Create Network') {
+            steps {
+                sh '''
+                docker network create $NETWORK || true
+                '''
+            }
+        }
+
+        // 🔹 BUILD FRONTEND
         stage('Build Frontend Image') {
             steps {
                 dir('frontend') {
@@ -25,7 +35,7 @@ pipeline {
             }
         }
 
-        // 🔹 BACKEND BUILD
+        // 🔹 BUILD BACKEND
         stage('Build Backend Image') {
             steps {
                 dir('backend') {
@@ -34,14 +44,12 @@ pipeline {
             }
         }
 
-        // 🔹 STOP OLD CONTAINERS
-        stage('Stop Old Containers') {
+        // 🔹 CLEAN OLD CONTAINERS (FORCE REMOVE)
+        stage('Clean Old Containers') {
             steps {
                 sh '''
-                docker stop $FRONTEND_CONTAINER || true
-                docker rm $FRONTEND_CONTAINER || true
-                docker stop $BACKEND_CONTAINER || true
-                docker rm $BACKEND_CONTAINER || true
+                docker rm -f $FRONTEND_CONTAINER || true
+                docker rm -f $BACKEND_CONTAINER || true
                 '''
             }
         }
@@ -50,7 +58,11 @@ pipeline {
         stage('Run Backend') {
             steps {
                 sh '''
-                docker run -d -p 5000:5000 --name $BACKEND_CONTAINER $BACKEND_IMAGE
+                docker run -d \
+                --name $BACKEND_CONTAINER \
+                --network $NETWORK \
+                -p 5001:5000 \
+                $BACKEND_IMAGE
                 '''
             }
         }
@@ -59,7 +71,11 @@ pipeline {
         stage('Run Frontend') {
             steps {
                 sh '''
-                docker run -d -p 3000:80 --name $FRONTEND_CONTAINER $FRONTEND_IMAGE
+                docker run -d \
+                --name $FRONTEND_CONTAINER \
+                --network $NETWORK \
+                -p 3000:80 \
+                $FRONTEND_IMAGE
                 '''
             }
         }
