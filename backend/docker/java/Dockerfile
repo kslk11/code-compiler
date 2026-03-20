@@ -1,4 +1,3 @@
-FROM eclipse-temurin:17-jdk-alpine
-WORKDIR /app
+FROM openjdk:17-alpine
 
-CMD sh -c "javac Main.java && java Main"
+WORKDIR /app
