@@ -54,14 +54,20 @@ pipeline {
         }
 
         // 🔹 CLEAN OLD CONTAINERS
-        stage('Clean Old Containers') {
-            steps {
-                sh '''
-                docker rm -f $FRONTEND_CONTAINER || true
-                docker rm -f $BACKEND_CONTAINER || true
-                '''
-            }
-        }
+      stage('Clean Old Containers') {
+    steps {
+        sh '''
+        docker rm -f $FRONTEND_CONTAINER || true
+        docker rm -f $BACKEND_CONTAINER || true
+
+        # 🔥 Remove ANY container using port 5001
+        docker ps -q --filter "publish=5001" | xargs -r docker rm -f
+
+        # 🔥 Kill any process using 5001 (extra safety)
+        fuser -k 5001/tcp || true
+        '''
+    }
+}
 
         // 🔥 RUN BACKEND (FIXED)
         stage('Run Backend') {
