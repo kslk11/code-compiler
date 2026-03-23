@@ -17,12 +17,21 @@ pipeline {
             }
         }
 
-        // 🔹 CREATE DOCKER NETWORK (IMPORTANT)
-        stage('Create Network') {
+        // 🔥 BUILD RUNNER IMAGES (CRITICAL)
+        stage('Build Runner Images') {
             steps {
                 sh '''
-                docker network create $NETWORK || true
+                docker build -t runner-python ./runner-python
+                docker build -t runner-js ./runner-js
+                docker build -t runner-java ./runner-java
                 '''
+            }
+        }
+
+        // 🔹 CREATE NETWORK
+        stage('Create Network') {
+            steps {
+                sh 'docker network create $NETWORK || true'
             }
         }
 
@@ -44,7 +53,7 @@ pipeline {
             }
         }
 
-        // 🔹 CLEAN OLD CONTAINERS (FORCE REMOVE)
+        // 🔹 CLEAN OLD CONTAINERS
         stage('Clean Old Containers') {
             steps {
                 sh '''
@@ -54,14 +63,15 @@ pipeline {
             }
         }
 
-        // 🔹 RUN BACKEND
+        // 🔥 RUN BACKEND (FIXED)
         stage('Run Backend') {
             steps {
                 sh '''
                 docker run -d \
                 --name $BACKEND_CONTAINER \
                 --network $NETWORK \
-                -p 5001:5000 \
+                -p 5001:5001 \
+                -v /var/run/docker.sock:/var/run/docker.sock \
                 $BACKEND_IMAGE
                 '''
             }

@@ -99,7 +99,7 @@ export default function App() {
     startTimeRef.current = performance.now();
 
     try {
-      const res = await axios.post("http://backend-container:5000/api/run", {
+      const res = await axios.post("/api/run", {
         code,
         language,
         input,

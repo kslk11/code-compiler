@@ -1,79 +1,62 @@
 import { exec } from "child_process";
-import fs from "fs";
-import path from "path";
-
-const TEMP_DIR = "./temp";
-
-if (!fs.existsSync(TEMP_DIR)) {
-  fs.mkdirSync(TEMP_DIR);
-}
 
 export const executeCode = (language, code, input = "") => {
   return new Promise((resolve) => {
-    const jobId = Date.now();
-    const jobDir = path.join(TEMP_DIR, jobId.toString());
+    let isResolved = false;
 
-    fs.mkdirSync(jobDir);
+    const safeResolve = (data) => {
+      if (!isResolved) {
+        isResolved = true;
+        resolve(data);
+      }
+    };
 
-    let fileName = "";
-    let image = "";
-    let runCommand = "";
+    let command = "";
 
-    // 🔹 Language setup
     if (language === "python") {
-      fileName = "code.py";
-      image = "code-python";
-      
+      command = `docker run --rm -i runner-python sh -c "cat > code.py && python3 code.py"`;
     } 
     else if (language === "javascript") {
-      fileName = "code.js";
-      image = "code-js";
+      command = `docker run --rm -i runner-js sh -c "cat > code.js && node code.js"`;
     } 
     else if (language === "java") {
-      fileName = "Main.java";
-      image = "code-java";
+      command = `docker run --rm -i runner-java sh -c "cat > Main.java && javac Main.java && java Main"`;
+    } 
+    else {
+      return safeResolve({
+        success: false,
+        error: "Unsupported language"
+      });
     }
 
-    const filePath = path.join(jobDir, fileName);
-    fs.writeFileSync(filePath, code);
+    console.log("🐳 Running:", command);
 
-    // 🔥 Docker Run Command
-    runCommand = `docker run --rm -i \
-      --memory="100m" \
-      --cpus="0.5" \
-      -v ${path.resolve(jobDir)}:/app \
-      ${image}`;
-
-    const process = exec(runCommand, (error, stdout, stderr) => {
-      // 🧹 Cleanup folder
-      fs.rmSync(jobDir, { recursive: true, force: true });
-
+    const process = exec(command, (error, stdout, stderr) => {
       if (error) {
-        return resolve({
+        return safeResolve({
           success: false,
           type: "runtime_error",
           error: stderr || error.message
         });
       }
 
-      resolve({
+      safeResolve({
         success: true,
         output: stdout
       });
     });
 
-    if (input) {
-      process.stdin.write(input);
-    }
+    // ✅ send code directly
+    process.stdin.write(code);
     process.stdin.end();
 
     setTimeout(() => {
-      process.kill();
-      resolve({
+      process.kill("SIGKILL");
+      safeResolve({
         success: false,
         type: "timeout_error",
         error: "Execution timed out"
       });
-    }, 10000);
+    }, 5000);
   });
 };
