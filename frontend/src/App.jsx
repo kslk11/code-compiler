@@ -3,10 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import CodeEditor from "./components/Editor";
 import problems from "./data/problems";
 
-// ── Helper: uniform border via explicit longhands only ───────────────────────
-// Use this wherever all 4 sides share the same width/style/color.
-// Never use the `border` shorthand — React's style reconciler warns when
-// shorthand and longhand properties for the same value are mixed on re-render.
 const bAll = (width, style, color) => ({
   borderTopWidth: width,
   borderRightWidth: width,
@@ -22,7 +18,7 @@ const bAll = (width, style, color) => ({
   borderLeftColor: color,
 });
 
-// ── Icons ────────────────────────────────────────────────────────────────────
+
 const PlayIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
     <polygon points="5,3 19,12 5,21" />
